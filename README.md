@@ -32,9 +32,9 @@ Transactix employs a modular and well-defined architecture, comprising the follo
         * **Sales History & Logs:** Maintains a detailed record of all completed sales transactions, capturing crucial information such as the date and time of the sale, the specific items sold, and the total transaction amount. This data is invaluable for reporting and analytical purposes.
         * **Role-Based Access:** Implements a robust role-based access control mechanism, defining distinct user roles (e.g., Cashier, Administrator) with precisely defined privileges and permissions. This ensures that users can only access the features and functionalities relevant to their assigned responsibilities, enhancing security and operational efficiency.
 
-5.  **PostgreSQL Database:**
-    * **Technology:** PostgreSQL
-    * **Description:** A reliable and scalable relational database that serves as the persistent storage for all of Transactix's critical data. The database is logically organized into the following key tables:
+5.  **Supabase Database:**
+    * **Technology:** Supabase (PostgreSQL-based)
+    * **Description:** A reliable and scalable cloud database service built on PostgreSQL that serves as the persistent storage for all of Transactix's critical data. The database is logically organized into the following key tables:
         * `products`: Stores comprehensive details for each product within the inventory.
         * `users`: Manages user accounts, including essential authentication credentials and assigned roles within the system.
         * `sales`: Records detailed information about every sales transaction processed through the system.
@@ -44,7 +44,7 @@ Transactix employs a modular and well-defined architecture, comprising the follo
 
 **Data Flow:**
 
-The client-side React application initiates communication with the backend Laravel API server through secure HTTP requests directed to the protected API endpoints. These requests typically include an authentication token to verify the identity of the user making the request. The Laravel backend diligently processes these incoming requests, performing necessary business logic and interacting with the PostgreSQL database to retrieve or persist data. This interaction with the database is facilitated through efficient SQL queries, likely leveraging Laravel's Eloquent ORM (Object-Relational Mapper) to streamline database interactions and enhance code maintainability.
+The client-side React application initiates communication with the backend Laravel API server through secure HTTP requests directed to the protected API endpoints. These requests typically include an authentication token to verify the identity of the user making the request. The Laravel backend diligently processes these incoming requests, performing necessary business logic and interacting with the Supabase database to retrieve or persist data. This interaction with the database is facilitated through Supabase's RESTful API and Laravel's database abstraction layer to streamline database interactions and enhance code maintainability.
 
 **User Management:**
 
@@ -95,6 +95,6 @@ The initial Minimum Viable Product (MVP) release of Transactix will focus on del
 | :--------------- | :---------------- |
 | Frontend         | React (with Vite) |
 | Backend/API      | Laravel (PHP)     |
-| Database         | PostgreSQL        |
+| Database         | Supabase        |
 | Authentication   | Laravel Sanctum   |
 | Deployment       | To Be Announced   |
