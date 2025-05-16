@@ -40,7 +40,6 @@ Transactix employs a modular and well-defined architecture, comprising the follo
         * `sales`: Records detailed information about every sales transaction processed through the system.
         * `receipts`: Stores the specifics of each generated receipt, linking them back to their corresponding sales transactions.
         * `sale_items`: Represents the individual product items included within each sales transaction, establishing the relationship between sales and products with associated quantities.
-        * `categories`: Organizes products into logical categories, facilitating efficient product management and categorization within the inventory system.
 
 **Data Flow:**
 
@@ -69,9 +68,6 @@ The initial Minimum Viable Product (MVP) release of Transactix will focus on del
     * Capability to remove products from the system when they are no longer offered or relevant.
 * **Stock Management:**
     * Real-time tracking of the current stock quantity for each product in the inventory.
-* **Product Categorization:**
-    * Tools to create and effectively manage product categories for better organization.
-    * Ability to assign products to specific categories for streamlined inventory management and reporting.
 
 **Cashiering System:**
 

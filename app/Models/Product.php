@@ -21,7 +21,6 @@ class Product extends SupabaseModel
         'description',
         'price',
         'stock_quantity',
-        'category_id',
         'sku',
         'barcode',
         'is_active',
@@ -35,32 +34,10 @@ class Product extends SupabaseModel
     protected $casts = [
         'price' => 'float',
         'stock_quantity' => 'integer',
-        'category_id' => 'integer',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    /**
-     * Get the category that owns the product.
-     *
-     * @return \App\Models\Category|null
-     */
-    public function category()
-    {
-        return Category::find($this->category_id);
-    }
-
-    /**
-     * Get products by category ID.
-     *
-     * @param int $categoryId
-     * @return \Illuminate\Support\Collection
-     */
-    public static function findByCategory(int $categoryId)
-    {
-        return self::where('category_id', $categoryId);
-    }
 
     /**
      * Get active products.
@@ -90,11 +67,11 @@ class Product extends SupabaseModel
                 ]
             ]
         );
-        
+
         if (empty($results)) {
             return collect();
         }
-        
+
         return collect(array_map(function ($item) {
             return new static($item);
         }, $results));
@@ -124,7 +101,7 @@ class Product extends SupabaseModel
         if ($this->stock_quantity < $quantity) {
             return false;
         }
-        
+
         return $this->updateStock($this->stock_quantity - $quantity);
     }
 
