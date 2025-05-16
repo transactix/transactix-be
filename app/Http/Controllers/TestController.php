@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Supabase;
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,30 +18,26 @@ class TestController extends Controller
     public function testSupabase()
     {
         try {
-            // Test direct Supabase query
-            $categories = Supabase::query('categories', [
-                'select' => ['id', 'name', 'slug'],
+            // Test direct Supabase query for products
+            $products = Supabase::query('products', [
+                'select' => ['id', 'name', 'price'],
                 'limit' => 5
             ]);
 
-            // Test Category model
-            $categoryModels = Category::all(['id', 'name', 'slug'], true);
-            
             // Test Product model
             $productModels = Product::all(['id', 'name', 'price', 'stock_quantity'], true);
-            
+
             // Test User model
             $userModels = User::all(['id', 'name', 'email', 'role'], true);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Supabase integration is working correctly',
                 'data' => [
                     'direct_query' => [
-                        'categories' => $categories
+                        'products' => $products
                     ],
                     'models' => [
-                        'categories' => $categoryModels->toArray(),
                         'products' => $productModels->toArray(),
                         'users' => $userModels->toArray()
                     ]
@@ -50,7 +45,7 @@ class TestController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Supabase test error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Supabase integration test failed',
