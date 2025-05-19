@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,12 +25,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
+    // Product routes - accessible by both admin and cashier
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/{id}', [ProductController::class, 'show']);
+
     // Admin routes
     Route::middleware('role:admin')->group(function () {
-        // Admin-only routes will go here
+        // Product management (admin only)
+        Route::post('/products', [ProductController::class, 'store']);
+        Route::put('/products/{id}', [ProductController::class, 'update']);
+        Route::delete('/products/{id}', [ProductController::class, 'destroy']);
     });
-    
+
     // Cashier routes
     Route::middleware('role:cashier')->group(function () {
         // Cashier-only routes will go here
