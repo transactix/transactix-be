@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use App\Facades\Supabase;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 
-class User extends SupabaseModel
+class User extends Model implements Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, AuthenticatableTrait, HasApiTokens;
 
     /**
      * The Supabase table associated with the model.
@@ -56,16 +61,28 @@ class User extends SupabaseModel
      * Create a new user instance.
      *
      * @param array $attributes
-     * @return static|null
+     * @return static
      */
-    public static function create(array $attributes, bool $useServiceRole = true)
+    public static function create(array $attributes = [])
     {
         // Hash the password if it's not already hashed
         if (isset($attributes['password']) && !Hash::isHashed($attributes['password'])) {
             $attributes['password'] = Hash::make($attributes['password']);
         }
 
-        return parent::create($attributes, $useServiceRole);
+        // Add timestamps if enabled
+        $now = now()->toDateTimeString();
+        $attributes['created_at'] = $now;
+        $attributes['updated_at'] = $now;
+
+        $result = Supabase::insert('users', $attributes, true);
+
+        if (empty($result)) {
+            // Create a new instance with the attributes if Supabase insert fails
+            return new static($attributes);
+        }
+
+        return new static($result[0]);
     }
 
     /**
@@ -96,9 +113,8 @@ class User extends SupabaseModel
      */
     public static function findByEmail(string $email)
     {
-        $instance = new static;
-        $result = \App\Facades\Supabase::query(
-            $instance->table,
+        $result = Supabase::query(
+            'users',
             [
                 'where' => ['email' => $email],
                 'limit' => 1
