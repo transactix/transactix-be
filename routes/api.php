@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
 
     // Product routes - accessible by both admin and cashier
     Route::get('/products', [ProductController::class, 'index']);

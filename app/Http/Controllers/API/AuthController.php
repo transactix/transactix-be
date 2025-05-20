@@ -172,4 +172,75 @@ class AuthController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Update user profile.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateProfile(Request $request)
+    {
+        // Validate request data
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $request->user()->id,
+            'current_password' => 'required_with:password|string',
+            'password' => [
+                'sometimes',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        // Check current password if trying to update password
+        if ($request->filled('password')) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Current password is incorrect'
+                ], 401);
+            }
+        }
+
+        // Update user data
+        $updateData = [];
+        if ($request->filled('name')) {
+            $updateData['name'] = $request->name;
+        }
+        if ($request->filled('email')) {
+            $updateData['email'] = $request->email;
+        }
+        if ($request->filled('password')) {
+            $updateData['password'] = $request->password;
+        }
+
+        $user->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ]
+            ]
+        ]);
+    }
 }
