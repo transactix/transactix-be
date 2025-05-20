@@ -21,6 +21,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Password reset routes
+Route::post('/password/email', [\App\Http\Controllers\API\PasswordResetController::class, 'sendResetLinkEmail']);
+Route::post('/password/reset', [\App\Http\Controllers\API\PasswordResetController::class, 'reset']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // User routes
