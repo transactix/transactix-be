@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\StockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Product routes - accessible by both admin and cashier
     Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/low-stock', [StockController::class, 'lowStock']);
     Route::get('/products/{id}', [ProductController::class, 'show']);
 
     // Admin routes
@@ -36,10 +38,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/products', [ProductController::class, 'store']);
         Route::put('/products/{id}', [ProductController::class, 'update']);
         Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+        // Stock management (admin only)
+        Route::put('/products/{id}/stock', [StockController::class, 'updateStock']);
+        Route::put('/products/{id}/stock/increase', [StockController::class, 'increaseStock']);
+        Route::put('/products/{id}/stock/decrease', [StockController::class, 'decreaseStock']);
     });
 
     // Cashier routes
     Route::middleware('role:cashier')->group(function () {
-        // Cashier-only routes will go here
+        // Stock management (cashier can only decrease stock during sales)
+        Route::put('/products/{id}/stock/decrease', [StockController::class, 'decreaseStock']);
     });
 });
