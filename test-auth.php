@@ -5,17 +5,43 @@ require __DIR__ . '/vendor/autoload.php';
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 // Load the Laravel application
 $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
+// Check database connection
+try {
+    echo "Checking database connection...\n";
+    DB::connection()->getPdo();
+    echo "Database connection successful: " . DB::connection()->getDatabaseName() . "\n\n";
+} catch (\Exception $e) {
+    echo "Database connection failed: " . $e->getMessage() . "\n";
+    echo "Please check your database configuration in .env file.\n";
+    exit(1);
+}
+
+// Run migrations if needed
+echo "Running migrations to ensure all tables exist...\n";
+try {
+    Artisan::call('migrate', ['--force' => true]);
+    echo Artisan::output();
+    echo "Migrations completed successfully.\n\n";
+} catch (\Exception $e) {
+    echo "Migration failed: " . $e->getMessage() . "\n";
+    echo "Continuing with the test...\n\n";
+}
+
+// Generate a unique email for testing
+$testEmail = 'test_' . time() . '@example.com';
+
 // Create a test user
-echo "Creating a test user...\n";
+echo "Creating a test user with email: {$testEmail}...\n";
 $response = $kernel->handle(
     Request::create('/api/register', 'POST', [
         'name' => 'Test User',
-        'email' => 'test_' . time() . '@example.com',
+        'email' => $testEmail,
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
     ])
@@ -110,4 +136,23 @@ if ($content && isset($content['success']) && $content['success']) {
     }
 } else {
     echo "Error: User creation failed.\n";
+}
+
+// Check if the user was created in Supabase
+echo "\nChecking if user was created in Supabase...\n";
+try {
+    $user = DB::table('users')->where('email', $testEmail)->first();
+    if ($user) {
+        echo "User found in database with ID: {$user->id}\n";
+        echo "User details: " . json_encode([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+        ], JSON_PRETTY_PRINT) . "\n";
+    } else {
+        echo "User not found in database. This may indicate an issue with the Supabase integration.\n";
+    }
+} catch (\Exception $e) {
+    echo "Error checking user in database: " . $e->getMessage() . "\n";
 }

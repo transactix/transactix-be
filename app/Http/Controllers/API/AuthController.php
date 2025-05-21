@@ -118,22 +118,39 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Check email
-        $user = User::where('email', $request->email)->first();
+        try {
+            // Check email
+            $user = User::findByEmail($request->email);
 
-        // Check password
-        if (!$user || !Hash::check($request->password, $user->password)) {
+            // Check password
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid credentials'
+                ], 401);
+            }
+
+            // Ensure the user has an ID
+            if (!$user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User record is incomplete'
+                ], 500);
+            }
+
+            // Delete previous tokens
+            $user->tokens()->delete();
+
+            // Create new token
+            $token = $user->createToken('auth_token')->plainTextToken;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('User login error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials'
-            ], 401);
+                'message' => 'Error during login: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Delete previous tokens
-        $user->tokens()->delete();
-
-        // Create new token
-        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
