@@ -175,7 +175,7 @@ class User extends Model implements Authenticatable
     {
         $instance = static::where('email', $attributes['email'])->first();
 
-        if (!is_null($instance)) {
+        if ($instance !== null) {
             return $instance;
         }
 
@@ -215,6 +215,7 @@ class User extends Model implements Authenticatable
         }
 
         // Fall back to Eloquent if Supabase query fails or returns no results
-        return parent::find($id);
+        $model = parent::find($id);
+        return $model instanceof \Illuminate\Database\Eloquent\Collection ? $model->first() : $model;
     }
 }

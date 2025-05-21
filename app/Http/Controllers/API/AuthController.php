@@ -53,16 +53,32 @@ class AuthController extends Controller
             }
         }
 
-        // Create user
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password, // Hashing is handled in the model
-            'role' => $request->role ?? 'cashier', // Default to cashier
-        ]);
+        try {
+            // Create user
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password, // Hashing is handled in the model
+                'role' => $request->role ?? 'cashier', // Default to cashier
+            ]);
 
-        // Create token
-        $token = $user->createToken('auth_token')->plainTextToken;
+            if (!$user || !$user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create user'
+                ], 500);
+            }
+
+            // Create token
+            $token = $user->createToken('auth_token')->plainTextToken;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('User registration error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error during user registration: ' . $e->getMessage()
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
