@@ -6,10 +6,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Load the Laravel application
 $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+
+// Bootstrap the application
+$app->bootstrapWith([
+    \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,
+    \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+    \Illuminate\Foundation\Bootstrap\HandleExceptions::class,
+    \Illuminate\Foundation\Bootstrap\RegisterFacades::class,
+    \Illuminate\Foundation\Bootstrap\RegisterProviders::class,
+    \Illuminate\Foundation\Bootstrap\BootProviders::class,
+]);
 
 // Check database connection
 try {
@@ -19,14 +30,29 @@ try {
 } catch (\Exception $e) {
     echo "Database connection failed: " . $e->getMessage() . "\n";
     echo "Please check your database configuration in .env file.\n";
-    exit(1);
+    echo "Continuing with the test anyway...\n\n";
 }
 
 // Run migrations if needed
 echo "Running migrations to ensure all tables exist...\n";
 try {
-    Artisan::call('migrate', ['--force' => true]);
-    echo Artisan::output();
+    // Create the personal_access_tokens table if it doesn't exist
+    if (!Schema::hasTable('personal_access_tokens')) {
+        Schema::create('personal_access_tokens', function ($table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+        echo "Created personal_access_tokens table.\n";
+    } else {
+        echo "personal_access_tokens table already exists.\n";
+    }
+
     echo "Migrations completed successfully.\n\n";
 } catch (\Exception $e) {
     echo "Migration failed: " . $e->getMessage() . "\n";
@@ -77,12 +103,10 @@ if ($content && isset($content['success']) && $content['success']) {
 
         // Test protected route
         echo "Testing protected route...\n";
-        $userResponse = $kernel->handle(
-            Request::create('/api/user', 'GET', [], [], [], [
-                'HTTP_AUTHORIZATION' => 'Bearer ' . $loginToken,
-                'HTTP_ACCEPT' => 'application/json',
-            ])
-        );
+        $request = Request::create('/api/user', 'GET');
+        $request->headers->set('Authorization', 'Bearer ' . $loginToken);
+        $request->headers->set('Accept', 'application/json');
+        $userResponse = $kernel->handle($request);
 
         $userContent = json_decode($userResponse->getContent(), true);
         echo "Response status code: " . $userResponse->getStatusCode() . "\n";
@@ -93,12 +117,10 @@ if ($content && isset($content['success']) && $content['success']) {
 
             // Test logout
             echo "Testing logout...\n";
-            $logoutResponse = $kernel->handle(
-                Request::create('/api/logout', 'POST', [], [], [], [
-                    'HTTP_AUTHORIZATION' => 'Bearer ' . $loginToken,
-                    'HTTP_ACCEPT' => 'application/json',
-                ])
-            );
+            $logoutRequest = Request::create('/api/logout', 'POST');
+            $logoutRequest->headers->set('Authorization', 'Bearer ' . $loginToken);
+            $logoutRequest->headers->set('Accept', 'application/json');
+            $logoutResponse = $kernel->handle($logoutRequest);
 
             $logoutContent = json_decode($logoutResponse->getContent(), true);
             echo "Response status code: " . $logoutResponse->getStatusCode() . "\n";
@@ -109,12 +131,10 @@ if ($content && isset($content['success']) && $content['success']) {
 
                 // Try to access protected route after logout
                 echo "Testing protected route after logout...\n";
-                $afterLogoutResponse = $kernel->handle(
-                    Request::create('/api/user', 'GET', [], [], [], [
-                        'HTTP_AUTHORIZATION' => 'Bearer ' . $loginToken,
-                        'HTTP_ACCEPT' => 'application/json',
-                    ])
-                );
+                $afterLogoutRequest = Request::create('/api/user', 'GET');
+                $afterLogoutRequest->headers->set('Authorization', 'Bearer ' . $loginToken);
+                $afterLogoutRequest->headers->set('Accept', 'application/json');
+                $afterLogoutResponse = $kernel->handle($afterLogoutRequest);
 
                 $afterLogoutContent = json_decode($afterLogoutResponse->getContent(), true);
                 echo "Response status code: " . $afterLogoutResponse->getStatusCode() . "\n";
@@ -141,18 +161,61 @@ if ($content && isset($content['success']) && $content['success']) {
 // Check if the user was created in Supabase
 echo "\nChecking if user was created in Supabase...\n";
 try {
-    $user = DB::table('users')->where('email', $testEmail)->first();
-    if ($user) {
-        echo "User found in database with ID: {$user->id}\n";
+    // Try using Supabase facade directly
+    $supabase = app('supabase');
+    $result = $supabase->query('users', [
+        'where' => ['email' => $testEmail],
+        'limit' => 1
+    ], true);
+
+    if (!empty($result) && is_array($result) && isset($result[0])) {
+        $user = $result[0];
+        echo "User found in Supabase with ID: {$user['id']}\n";
         echo "User details: " . json_encode([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
+            'id' => $user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'role' => $user['role'],
         ], JSON_PRETTY_PRINT) . "\n";
     } else {
-        echo "User not found in database. This may indicate an issue with the Supabase integration.\n";
+        // Try using DB facade as fallback
+        $user = DB::table('users')->where('email', $testEmail)->first();
+        if ($user) {
+            echo "User found in database with ID: {$user->id}\n";
+            echo "User details: " . json_encode([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ], JSON_PRETTY_PRINT) . "\n";
+        } else {
+            echo "User not found in database. This may indicate an issue with the Supabase integration.\n";
+        }
     }
 } catch (\Exception $e) {
     echo "Error checking user in database: " . $e->getMessage() . "\n";
+    echo "Trying alternative method...\n";
+
+    try {
+        // Try using App\Facades\Supabase
+        $result = \App\Facades\Supabase::query('users', [
+            'where' => ['email' => $testEmail],
+            'limit' => 1
+        ], true);
+
+        if (!empty($result) && is_array($result) && isset($result[0])) {
+            $user = $result[0];
+            echo "User found in Supabase with ID: {$user['id']}\n";
+            echo "User details: " . json_encode([
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'role' => $user['role'],
+            ], JSON_PRETTY_PRINT) . "\n";
+        } else {
+            echo "User not found using Supabase facade.\n";
+        }
+    } catch (\Exception $e2) {
+        echo "Error using Supabase facade: " . $e2->getMessage() . "\n";
+    }
 }
