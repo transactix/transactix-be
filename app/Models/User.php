@@ -75,14 +75,37 @@ class User extends Model implements Authenticatable
         $attributes['created_at'] = $now;
         $attributes['updated_at'] = $now;
 
-        $result = Supabase::insert('users', $attributes, true);
+        try {
+            // Try to insert into Supabase
+            $result = Supabase::insert('users', $attributes, true);
 
-        if (empty($result)) {
-            // Create a new instance with the attributes if Supabase insert fails
-            return new static($attributes);
+            if (!empty($result) && is_array($result) && isset($result[0])) {
+                $user = new static($result[0]);
+                // Ensure the ID is set
+                if (!$user->id && isset($result[0]['id'])) {
+                    $user->id = $result[0]['id'];
+                }
+                return $user;
+            }
+
+            // If Supabase insert fails or returns unexpected format, fall back to Eloquent
+            return parent::create($attributes);
+        } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Supabase user creation error: ' . $e->getMessage());
+
+            // Check if the error is due to duplicate email
+            if (strpos($e->getMessage(), 'duplicate key value') !== false && strpos($e->getMessage(), 'email') !== false) {
+                // Try to find the user by email
+                $user = static::where('email', $attributes['email'])->first();
+                if ($user) {
+                    return $user;
+                }
+            }
+
+            // Fall back to Eloquent
+            return parent::create($attributes);
         }
-
-        return new static($result[0]);
     }
 
     /**
@@ -113,19 +136,85 @@ class User extends Model implements Authenticatable
      */
     public static function findByEmail(string $email)
     {
-        $result = Supabase::query(
-            'users',
-            [
-                'where' => ['email' => $email],
-                'limit' => 1
-            ],
-            true
-        );
+        try {
+            // Try to query Supabase first
+            $result = Supabase::query(
+                'users',
+                [
+                    'where' => ['email' => $email],
+                    'limit' => 1
+                ],
+                true
+            );
 
-        if (empty($result)) {
-            return null;
+            if (!empty($result) && is_array($result) && isset($result[0])) {
+                $user = new static($result[0]);
+                // Ensure the ID is set
+                if (!$user->id && isset($result[0]['id'])) {
+                    $user->id = $result[0]['id'];
+                }
+                return $user;
+            }
+        } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Supabase query error: ' . $e->getMessage());
         }
 
-        return new static($result[0]);
+        // Fall back to Eloquent if Supabase query fails or returns no results
+        return static::where('email', $email)->first();
+    }
+
+    /**
+     * Get the first record matching the attributes or create it.
+     *
+     * @param array $attributes
+     * @param array $values
+     * @return static
+     */
+    public static function firstOrCreate(array $attributes, array $values = [])
+    {
+        $instance = static::where('email', $attributes['email'])->first();
+
+        if (!is_null($instance)) {
+            return $instance;
+        }
+
+        return static::create(array_merge($attributes, $values));
+    }
+
+    /**
+     * Find a model by its primary key.
+     *
+     * @param mixed $id
+     * @return static|null
+     */
+    public static function find($id)
+    {
+        try {
+            // Try to query Supabase first
+            $result = Supabase::query(
+                'users',
+                [
+                    'where' => ['id' => $id],
+                    'limit' => 1
+                ],
+                true
+            );
+
+            if (!empty($result) && is_array($result) && isset($result[0])) {
+                $user = new static($result[0]);
+                // Ensure the ID is set
+                if (!$user->id && isset($result[0]['id'])) {
+                    $user->id = $result[0]['id'];
+                }
+                return $user;
+            }
+        } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Supabase query error: ' . $e->getMessage());
+        }
+
+        // Fall back to Eloquent if Supabase query fails or returns no results
+        return parent::find($id);
     }
 }
