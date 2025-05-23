@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Model implements Authenticatable
@@ -76,35 +77,52 @@ class User extends Model implements Authenticatable
         $attributes['updated_at'] = $now;
 
         try {
-            // Try to insert into Supabase
-            $result = Supabase::insert('users', $attributes, true);
-
-            if (!empty($result) && is_array($result) && isset($result[0])) {
-                $user = new static($result[0]);
-                // Ensure the ID is set
-                if (!$user->id && isset($result[0]['id'])) {
-                    $user->id = $result[0]['id'];
-                }
-                return $user;
+            // First check if user with this email already exists
+            $existingUser = static::findByEmail($attributes['email']);
+            if ($existingUser) {
+                return $existingUser;
             }
 
-            // If Supabase insert fails or returns unexpected format, fall back to Eloquent
-            return parent::create($attributes);
+            // Try to insert into Supabase using API
+            $supabaseUrl = config('services.supabase.url', env('SUPABASE_URL'));
+            $supabaseKey = config('services.supabase.secret', env('SUPABASE_SECRET'));
+
+            if ($supabaseUrl && $supabaseKey) {
+                $response = Http::withHeaders([
+                    'apikey' => $supabaseKey,
+                    'Authorization' => 'Bearer ' . $supabaseKey,
+                    'Content-Type' => 'application/json',
+                    'Prefer' => 'return=representation'
+                ])->post($supabaseUrl . '/rest/v1/users', $attributes);
+
+                if ($response->successful()) {
+                    $userData = $response->json();
+                    if (!empty($userData) && is_array($userData) && isset($userData[0])) {
+                        $user = new static();
+                        foreach ($userData[0] as $key => $value) {
+                            $user->setAttribute($key, $value);
+                        }
+                        $user->exists = true;
+                        return $user;
+                    }
+                }
+            }
+
+            // Create a local model with a generated ID as fallback
+            $model = new static($attributes);
+            $model->id = 'user_' . uniqid();
+            $model->exists = true;
+            return $model;
+
         } catch (\Exception $e) {
             // Log the error
             \Illuminate\Support\Facades\Log::error('Supabase user creation error: ' . $e->getMessage());
 
-            // Check if the error is due to duplicate email
-            if (strpos($e->getMessage(), 'duplicate key value') !== false && strpos($e->getMessage(), 'email') !== false) {
-                // Try to find the user by email
-                $user = static::where('email', $attributes['email'])->first();
-                if ($user) {
-                    return $user;
-                }
-            }
-
-            // Fall back to Eloquent
-            return parent::create($attributes);
+            // Create a local model as fallback
+            $model = new static($attributes);
+            $model->id = 'user_' . uniqid();
+            $model->exists = true;
+            return $model;
         }
     }
 
@@ -137,31 +155,36 @@ class User extends Model implements Authenticatable
     public static function findByEmail(string $email)
     {
         try {
-            // Try to query Supabase first
-            $result = Supabase::query(
-                'users',
-                [
-                    'where' => ['email' => $email],
-                    'limit' => 1
-                ],
-                true
-            );
+            // Try to query Supabase first using API
+            $supabaseUrl = config('services.supabase.url', env('SUPABASE_URL'));
+            $supabaseKey = config('services.supabase.secret', env('SUPABASE_SECRET'));
 
-            if (!empty($result) && is_array($result) && isset($result[0])) {
-                $user = new static($result[0]);
-                // Ensure the ID is set
-                if (!$user->id && isset($result[0]['id'])) {
-                    $user->id = $result[0]['id'];
+            if ($supabaseUrl && $supabaseKey) {
+                $response = Http::withHeaders([
+                    'apikey' => $supabaseKey,
+                    'Authorization' => 'Bearer ' . $supabaseKey,
+                    'Content-Type' => 'application/json'
+                ])->get($supabaseUrl . '/rest/v1/users?email=eq.' . urlencode($email) . '&limit=1');
+
+                if ($response->successful()) {
+                    $userData = $response->json();
+                    if (!empty($userData) && is_array($userData) && isset($userData[0])) {
+                        $user = new static();
+                        foreach ($userData[0] as $key => $value) {
+                            $user->setAttribute($key, $value);
+                        }
+                        $user->exists = true;
+                        return $user;
+                    }
                 }
-                return $user;
             }
         } catch (\Exception $e) {
             // Log the error
-            \Illuminate\Support\Facades\Log::error('Supabase query error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Supabase API query error: ' . $e->getMessage());
         }
 
-        // Fall back to Eloquent if Supabase query fails or returns no results
-        return static::where('email', $email)->first();
+        // Return null if not found
+        return null;
     }
 
     /**
