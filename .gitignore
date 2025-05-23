@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Colleague documentation (temporary)
+QUICK_START_FOR_COLLEAGUE.md
