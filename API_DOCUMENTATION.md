@@ -270,96 +270,311 @@ Once authenticated, you can access these protected endpoints:
 
 All protected endpoints require the `Authorization: Bearer {token}` header.
 
+**Success Response (201 Created):**
+```json
+{
+    "success": true,
+    "message": "User registered successfully",
+    "data": {
+        "user": {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "role": "cashier"
+        },
+        "access_token": "1|abc123def456...",
+        "token_type": "Bearer"
+    }
+}
+```
+
+**Error Response (422 Validation Error):**
+```json
+{
+    "success": false,
+    "message": "Validation error",
+    "errors": {
+        "email": ["The email has already been taken."],
+        "password": ["The password must contain at least one symbol."]
+    }
+}
+```
+
 ---
 
-## 🚀 Quick Start for Your Colleague
+### 2. User Login
 
-### Step 1: Start the Laravel Server
+**Endpoint:** `POST /login`
+
+**Description:** Authenticate user and get access token
+
+**Headers:**
+```
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+    "email": "john@example.com",
+    "password": "Password123!"
+}
+```
+
+**Request Parameters:**
+- `email` (string, required): User's email address
+- `password` (string, required): User's password
+
+**Success Response (200 OK):**
+```json
+{
+    "success": true,
+    "message": "Login successful",
+    "data": {
+        "user": {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "role": "cashier"
+        },
+        "access_token": "2|xyz789abc123...",
+        "token_type": "Bearer"
+    }
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+    "success": false,
+    "message": "Invalid credentials"
+}
+```
+
+**Error Response (422 Validation Error):**
+```json
+{
+    "success": false,
+    "message": "Validation error",
+    "errors": {
+        "email": ["The email field is required."],
+        "password": ["The password field is required."]
+    }
+}
+```
+
+---
+
+### 3. User Logout
+
+**Endpoint:** `POST /logout`
+
+**Description:** Logout user and revoke access token
+
+**Headers:**
+```
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {access_token}
+```
+
+**Request Body:** None (empty)
+
+**Success Response (200 OK):**
+```json
+{
+    "success": true,
+    "message": "Successfully logged out"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+    "message": "Unauthenticated."
+}
+```
+
+---
+
+### 4. Get Current User (Protected Route)
+
+**Endpoint:** `GET /user`
+
+**Description:** Get authenticated user's information
+
+**Headers:**
+```
+Accept: application/json
+Authorization: Bearer {access_token}
+```
+
+**Success Response (200 OK):**
+```json
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "role": "cashier"
+        }
+    }
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+    "message": "Unauthenticated."
+}
+```
+
+---
+
+## Authentication Flow
+
+### For Frontend Implementation:
+
+1. **Registration/Login:**
+   - Send POST request to `/register` or `/login`
+   - Store the `access_token` from the response (localStorage, sessionStorage, or secure cookie)
+   - Store user information if needed
+
+2. **Making Authenticated Requests:**
+   - Include the token in the Authorization header: `Bearer {access_token}`
+   - Example: `Authorization: Bearer 1|abc123def456...`
+
+3. **Logout:**
+   - Send POST request to `/logout` with the token
+   - Clear stored token and user data from frontend
+
+4. **Token Handling:**
+   - Tokens don't expire by default but are revoked on logout
+   - Handle 401 responses by redirecting to login page
+
+---
+
+## Error Handling
+
+All error responses follow this structure:
+```json
+{
+    "success": false,
+    "message": "Error description",
+    "errors": {
+        "field_name": ["Specific error message"]
+    }
+}
+```
+
+Common HTTP status codes:
+- `200` - Success
+- `201` - Created (registration)
+- `401` - Unauthorized (invalid credentials or token)
+- `422` - Validation Error
+- `500` - Server Error
+
+---
+
+## Example Frontend Usage (JavaScript)
+
+```javascript
+// Registration
+const register = async (userData) => {
+    const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        localStorage.setItem('token', data.data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+    }
+    return data;
+};
+
+// Login
+const login = async (credentials) => {
+    const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        localStorage.setItem('token', data.data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+    }
+    return data;
+};
+
+// Logout
+const logout = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return response.json();
+};
+
+// Authenticated request
+const getUser = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch('/api/user', {
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.json();
+};
+```
+
+---
+
+## Testing the API
+
+You can test these endpoints using tools like Postman, Insomnia, or curl:
+
 ```bash
-cd transactix-backend
-php artisan serve
+# Register
+curl -X POST http://localhost:8000/api/register \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","password":"Password123!","password_confirmation":"Password123!"}'
+
+# Login
+curl -X POST http://localhost:8000/api/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"email":"test@example.com","password":"Password123!"}'
+
+# Get user (replace TOKEN with actual token)
+curl -X GET http://localhost:8000/api/user \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer TOKEN"
+
+# Logout
+curl -X POST http://localhost:8000/api/logout \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer TOKEN"
 ```
-The API will be available at: `http://localhost:8000/api`
-
-### Step 2: Test with Postman
-
-#### Test 1: Register a New User
-- **Method:** POST
-- **URL:** `http://localhost:8000/api/register`
-- **Headers:**
-  - `Content-Type: application/json`
-  - `Accept: application/json`
-- **Body (raw JSON):**
-```json
-{
-    "name": "Test Admin",
-    "email": "admin@test.com",
-    "password": "AdminPass123!",
-    "password_confirmation": "AdminPass123!",
-    "role": "admin"
-}
-```
-
-#### Test 2: Login with the User
-- **Method:** POST
-- **URL:** `http://localhost:8000/api/login`
-- **Headers:**
-  - `Content-Type: application/json`
-  - `Accept: application/json`
-- **Body (raw JSON):**
-```json
-{
-    "email": "admin@test.com",
-    "password": "AdminPass123!"
-}
-```
-**Copy the `access_token` from the response!**
-
-#### Test 3: Get User Profile (Protected)
-- **Method:** GET
-- **URL:** `http://localhost:8000/api/user`
-- **Headers:**
-  - `Accept: application/json`
-  - `Authorization: Bearer {paste_your_token_here}`
-
-#### Test 4: Logout
-- **Method:** POST
-- **URL:** `http://localhost:8000/api/logout`
-- **Headers:**
-  - `Accept: application/json`
-  - `Authorization: Bearer {paste_your_token_here}`
-
-### Expected Results:
-- ✅ **Register:** Returns 201 with user data and token
-- ✅ **Login:** Returns 200 with user data and token
-- ✅ **Get User:** Returns 200 with user profile
-- ✅ **Logout:** Returns 200 with success message
-
----
-
-## 📝 Summary for Your Colleague
-
-**Good news!** 🎉 The authentication API is **already fully implemented** and ready to use. Here's what's available:
-
-### ✅ **Completed Authentication Features:**
-1. **User Registration** - Create new accounts with role assignment
-2. **User Login** - Authenticate and receive access tokens
-3. **User Logout** - Revoke tokens securely
-4. **Protected Routes** - Token-based access control
-5. **Role-Based Access** - Admin and Cashier roles
-6. **Password Security** - Strong password requirements
-7. **Error Handling** - Comprehensive validation and error responses
-
-### 🔧 **Technical Details:**
-- **Framework:** Laravel with Sanctum authentication
-- **Database:** Supabase (PostgreSQL)
-- **Token Type:** Bearer tokens
-- **Security:** Password hashing, validation, role-based access
-- **Testing:** Comprehensive test suite included
-
-### 📋 **What Your Colleague Needs:**
-1. **Postman** (or any API testing tool)
-2. **Laravel server running** (`php artisan serve`)
-3. **This documentation** for endpoint details
-
-The authentication system is production-ready and follows Laravel best practices! 🚀
