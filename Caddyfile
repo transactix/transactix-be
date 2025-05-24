@@ -1,0 +1,71 @@
+{
+    # Global options for FrankenPHP
+    frankenphp
+    order php_server before file_server
+}
+
+# Development configuration (localhost)
+:80 {
+    # Set document root to Laravel's public directory
+    root * public
+
+    # Enable PHP processing with FrankenPHP
+    php_server
+
+    # Handle Laravel's pretty URLs
+    try_files {path} {path}/ /index.php?{query}
+
+    # Security headers
+    header {
+        # Remove server information
+        -Server
+        # Security headers
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+
+    # Handle errors gracefully
+    handle_errors {
+        respond "Error {http.error.status_code}: {http.error.status_text}"
+    }
+}
+
+# Production configuration (uncomment and modify for your domain)
+# your-domain.com {
+#     root * public
+#     
+#     # Enable PHP processing
+#     php_server
+#     
+#     # Laravel URL rewriting
+#     try_files {path} {path}/ /index.php?{query}
+#     
+#     # Security headers for production
+#     header {
+#         -Server
+#         X-Content-Type-Options nosniff
+#         X-Frame-Options DENY
+#         X-XSS-Protection "1; mode=block"
+#         Referrer-Policy strict-origin-when-cross-origin
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+#     }
+#     
+#     # Production logging
+#     log {
+#         output file /var/log/caddy/access.log
+#         format json
+#     }
+#     
+#     # Error handling
+#     handle_errors {
+#         respond "Application Error"
+#     }
+# }
