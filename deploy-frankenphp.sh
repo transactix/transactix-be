@@ -56,9 +56,10 @@ fi
 if ! command -v frankenphp &> /dev/null; then
     print_warning "FrankenPHP not found in PATH. Please install FrankenPHP first."
     print_status "Installation instructions:"
-    print_status "Linux: curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/"
-    print_status "macOS: curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/"
-    print_status "Windows: Download from https://github.com/dunglas/frankenphp/releases/latest"
+    print_status "Linux/WSL: curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/"
+    print_status "macOS Intel: curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/"
+    print_status "macOS ARM: curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-arm64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/"
+    print_status "Windows: Use WSL or Docker (native Windows binaries not available yet)"
     exit 1
 fi
 

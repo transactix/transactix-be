@@ -26,16 +26,22 @@ curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/franke
 chmod +x frankenphp
 sudo mv frankenphp /usr/local/bin/
 
-# For macOS:
+# For macOS Intel:
 curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-x86_64 -o frankenphp
 chmod +x frankenphp
 sudo mv frankenphp /usr/local/bin/
 
-# For Windows (download manually):
-# Visit: https://github.com/dunglas/frankenphp/releases/latest
-# Download: frankenphp-windows-x86_64.exe
-# Rename to: frankenphp.exe
-# Add to PATH
+# For macOS Apple Silicon (M1/M2/M3):
+curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-arm64 -o frankenphp
+chmod +x frankenphp
+sudo mv frankenphp /usr/local/bin/
+
+# For Windows:
+# ⚠️  Native Windows binaries are not available yet
+# Use one of these alternatives:
+# 1. WSL (Windows Subsystem for Linux) - recommended
+# 2. Docker Desktop with Linux containers
+# 3. Build from source (advanced users)
 ```
 
 ### Option B: Using Docker
@@ -43,6 +49,35 @@ sudo mv frankenphp /usr/local/bin/
 ```bash
 # Pull the official image
 docker pull dunglas/frankenphp:latest
+```
+
+### Option C: Windows Users - Recommended Approaches
+
+Since native Windows binaries are not available, Windows users have these options:
+
+#### 1. WSL (Windows Subsystem for Linux) - Recommended
+```bash
+# Install WSL if not already installed
+wsl --install
+
+# Open WSL terminal and follow Linux installation steps
+curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o frankenphp
+chmod +x frankenphp
+sudo mv frankenphp /usr/local/bin/
+```
+
+#### 2. Docker Desktop (Alternative)
+```bash
+# Use Docker with the official FrankenPHP image
+docker pull dunglas/frankenphp:latest
+```
+
+#### 3. Build from Source (Advanced)
+```bash
+# Requires Go 1.21+ and CGO
+git clone https://github.com/dunglas/frankenphp.git
+cd frankenphp
+go build
 ```
 
 ### Verify Installation
@@ -105,7 +140,7 @@ php artisan optimize
 
 This command runs:
 - `config:cache` - Caches configuration files
-- `event:cache` - Caches event-to-listener mappings  
+- `event:cache` - Caches event-to-listener mappings
 - `route:cache` - Caches route registrations
 - `view:cache` - Precompiles Blade views
 

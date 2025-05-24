@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  transactix-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transactix-backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_NAME=Transactix
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - APP_URL=http://localhost
+      
+      # Database configuration (Supabase)
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SSLMODE=require
+      
+      # Supabase API credentials
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SECRET=${SUPABASE_SECRET}
+      
+      # Laravel optimizations
+      - LOG_LEVEL=error
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+      - QUEUE_CONNECTION=sync
+    volumes:
+      # Mount storage and cache directories for persistence
+      - ./storage:/app/storage
+      - ./bootstrap/cache:/app/bootstrap/cache
+    restart: unless-stopped
+    networks:
+      - transactix-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  transactix-network:
+    driver: bridge

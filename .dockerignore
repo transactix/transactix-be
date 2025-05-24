@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+FRANKENPHP_DEPLOYMENT_GUIDE.md
+API_DOCUMENTATION.md
+QUICK_START_FOR_COLLEAGUE.md
+SUPABASE_INTEGRATION.md
+
+# Development files
+.env.example
+.editorconfig
+.phpunit.result.cache
+
+# Node modules and build files
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific (exclude logs and cache, but keep directories)
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+# Testing
+/tests
+phpunit.xml
+.phpunit.result.cache
+
+# Development tools
+artisan
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Database files
+database/database.sqlite
+*.sql
+
+# Postman collections
+*.postman_collection.json
+
+# Test files
+test-*.php
+check-*.php
+
+# Deployment scripts (not needed in container)
+deploy-*.sh

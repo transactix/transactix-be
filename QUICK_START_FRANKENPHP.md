@@ -4,8 +4,14 @@
 
 ```bash
 # 1. Install FrankenPHP (choose your OS)
-# Linux/WSL:
+# Linux/WSL (recommended for Windows users):
 curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/
+
+# macOS Intel:
+curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-x86_64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/
+
+# macOS Apple Silicon:
+curl -fsSL https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-mac-arm64 -o frankenphp && chmod +x frankenphp && sudo mv frankenphp /usr/local/bin/
 
 # 2. Run automated deployment
 ./deploy-frankenphp.sh
