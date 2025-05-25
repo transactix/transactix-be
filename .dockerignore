@@ -52,7 +52,7 @@ phpunit.xml
 .phpunit.result.cache
 
 # Development tools
-artisan
+# artisan - needed for Laravel commands
 
 # Temporary files
 *.tmp

@@ -21,22 +21,26 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy composer files first for better Docker layer caching
-COPY composer.json composer.lock ./
-
-# Install PHP dependencies
-RUN composer install --optimize-autoloader --no-dev --no-scripts
-
 # Copy application code
 COPY . .
 
 # Copy Caddyfile to the correct location
 COPY Caddyfile /etc/caddy/Caddyfile
 
-# Set proper permissions
+# Set proper permissions first
 RUN chown -R www-data:www-data /app \
     && chmod -R 755 /app/storage \
-    && chmod -R 755 /app/bootstrap/cache
+    && chmod -R 755 /app/bootstrap/cache \
+    && chmod +x /app/artisan
+
+# Install PHP dependencies (skip scripts initially)
+RUN composer install --optimize-autoloader --no-dev --no-scripts
+
+# Run composer scripts manually
+RUN composer run-script post-autoload-dump
+
+# Generate application key if not set
+RUN php artisan key:generate --force
 
 # Run Laravel optimizations
 RUN php artisan optimize
