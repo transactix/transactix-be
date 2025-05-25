@@ -14,8 +14,8 @@ services:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_KEY=${APP_KEY}
-      - APP_URL=http://localhost
-      
+      - APP_URL=http://localhost:8080
+
       # Database configuration (Supabase)
       - DB_CONNECTION=pgsql
       - DB_HOST=${DB_HOST}
@@ -24,12 +24,12 @@ services:
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_SSLMODE=require
-      
+
       # Supabase API credentials
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - SUPABASE_SECRET=${SUPABASE_SECRET}
-      
+
       # Laravel optimizations
       - LOG_LEVEL=error
       - SESSION_DRIVER=file
@@ -43,7 +43,7 @@ services:
     networks:
       - transactix-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
       interval: 30s
       timeout: 10s
       retries: 3

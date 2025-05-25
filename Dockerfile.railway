@@ -1,0 +1,58 @@
+# Railway-optimized Dockerfile for Laravel Transactix with FrankenPHP
+FROM dunglas/frankenphp:latest
+
+# Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /app
+
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies
+RUN composer install --optimize-autoloader --no-dev --no-scripts --no-interaction
+
+# Copy application code
+COPY . .
+
+# Copy Caddyfile for Railway
+COPY Caddyfile.railway /etc/caddy/Caddyfile
+
+# Set proper permissions
+RUN chown -R www-data:www-data /app \
+    && chmod -R 755 /app/storage \
+    && chmod -R 755 /app/bootstrap/cache \
+    && chmod +x /app/artisan
+
+# Run composer scripts
+RUN composer run-script post-autoload-dump
+
+# Generate application key if not set
+RUN php artisan key:generate --force
+
+# Run Laravel optimizations
+RUN php artisan optimize
+
+# Create storage link
+RUN php artisan storage:link
+
+# Expose port (Railway will assign the PORT environment variable)
+EXPOSE $PORT
+
+# Start FrankenPHP with Railway port binding
+CMD ["sh", "-c", "frankenphp run --config /etc/caddy/Caddyfile --listen :${PORT:-80}"]
