@@ -33,6 +33,15 @@ COPY . .
 # Copy Caddyfile for Railway
 COPY Caddyfile.railway /etc/caddy/Caddyfile
 
+# Create a temporary .env file for build process (before any artisan commands)
+RUN echo "APP_KEY=" > .env \
+    && echo "APP_ENV=production" >> .env \
+    && echo "APP_DEBUG=false" >> .env \
+    && echo "LOG_CHANNEL=stderr" >> .env \
+    && echo "DB_CONNECTION=sqlite" >> .env \
+    && echo "SESSION_DRIVER=file" >> .env \
+    && echo "CACHE_STORE=file" >> .env
+
 # Set proper permissions
 RUN chown -R www-data:www-data /app \
     && chmod -R 755 /app/storage \
@@ -42,17 +51,31 @@ RUN chown -R www-data:www-data /app \
 # Run composer scripts
 RUN composer run-script post-autoload-dump
 
-# Generate application key if not set
+# Generate application key
 RUN php artisan key:generate --force
 
-# Run Laravel optimizations
-RUN php artisan optimize
+# Run Laravel optimizations (skip config cache since we don't have all env vars)
+RUN php artisan route:cache \
+    && php artisan view:cache
 
 # Create storage link
 RUN php artisan storage:link
 
+# Remove temporary .env file (Railway will provide the real one)
+RUN rm .env
+
 # Expose port (Railway will assign the PORT environment variable)
 EXPOSE $PORT
 
-# Start FrankenPHP with Railway port binding
-CMD ["sh", "-c", "frankenphp run --config /etc/caddy/Caddyfile --listen :${PORT:-80}"]
+# Create startup script to handle runtime optimizations
+RUN echo '#!/bin/bash\n\
+# Runtime optimizations with actual environment variables\n\
+php artisan config:cache 2>/dev/null || true\n\
+php artisan optimize 2>/dev/null || true\n\
+\n\
+# Start FrankenPHP\n\
+exec frankenphp run --config /etc/caddy/Caddyfile --listen :${PORT:-80}\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Start with the startup script
+CMD ["/app/start.sh"]
